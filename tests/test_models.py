@@ -101,6 +101,131 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(new_product.available, product.available)
         self.assertEqual(new_product.category, product.category)
 
-    #
-    # ADD YOUR TEST CASES HERE
-    #
+    def test_read_a_product(self):
+        """It should Read a Product"""
+        product = ProductFactory()
+        product.id = None
+        product.create()
+        self.assertIsNotNone(product.id)
+        # Fetch it back
+        found_product = Product.find(product.id)
+        self.assertEqual(found_product.id, product.id)
+        self.assertEqual(found_product.name, product.name)
+        self.assertEqual(found_product.description, product.description)
+        self.assertEqual(found_product.price, product.price)
+
+    def test_update_a_product(self):
+        """It should Update a Product"""
+        product = ProductFactory()
+        product.id = None
+        product.create()
+        self.assertIsNotNone(product.id)
+        product.description = "testing"
+        original_id = product.id
+        product.update()
+        self.assertEqual(product.id, original_id)
+        self.assertEqual(product.description, "testing")
+        products = Product.all()
+        self.assertEqual(len(products), 1)
+        self.assertEqual(products[0].id, original_id)
+        self.assertEqual(products[0].description, "testing")
+
+    def test_update_assertation(self):
+        """It should Raise error if no id when update"""
+        product = ProductFactory()
+        product.id = None
+        self.assertRaises(Exception, product.update)
+
+    def test_serialize(self):
+        """It should Serialize a product"""
+        product = ProductFactory()
+        product_serialized = product.serialize()
+        self.assertEqual(product_serialized["id"], product.id)
+        self.assertEqual(product_serialized["name"], product.name)
+        self.assertEqual(product_serialized["description"], product.description)
+        self.assertEqual(product_serialized["category"], product.category.name)
+        self.assertEqual(product_serialized["price"], str(product.price))
+        self.assertEqual(product_serialized["available"], product.available)
+
+    def test_deserialize(self):
+        """It should Deserialize a product"""
+        product = ProductFactory()
+        product_serialized = product.serialize()
+        product_deserialized = Product().deserialize(product_serialized)
+        self.assertEqual(product_deserialized.name, product.name)
+        self.assertEqual(product_deserialized.description, product.description)
+        self.assertEqual(product_deserialized.price, product.price)
+        self.assertEqual(product_deserialized.available, product.available)
+        self.assertEqual(product_deserialized.category, product.category)
+
+    def test_deserialize_error_available(self):
+        """It should Raise error if available is not boolean"""
+        product = ProductFactory()
+        product_serialized = product.serialize()
+        product_serialized["available"] = "dog"
+        self.assertRaises(Exception, Product().deserialize, product_serialized)
+
+    def test_deserialize_error_category(self):
+        """It should Raise error if category is not a category"""
+        product = ProductFactory()
+        product_serialized = product.serialize()
+        product_serialized["category"] = "dog"
+        self.assertRaises(Exception, Product().deserialize, product_serialized)
+
+    def test_deserialize_error_type(self):
+        product_serialized = None
+        self.assertRaises(Exception, Product().deserialize, product_serialized)
+
+    def test_delete_a_product(self):
+        """It should Delete a Product"""
+        product = ProductFactory()
+        product.create()
+        self.assertEqual(len(Product.all()), 1)
+        product.delete()
+        self.assertEqual(len(Product.all()), 0)
+
+    def test_list_all_products(self):
+        """It should List all Products in the database"""
+        products = Product.all()
+        self.assertEqual(products, [])
+        for _ in range(10):
+            product = ProductFactory()
+            product.create()
+        products = Product.all()
+        self.assertEqual(len(products), 10)
+
+    def test_find_by_name(self):
+        """It should Find a Product by Name"""
+        products = ProductFactory.create_batch(5)
+        for product in products:
+            product.create()
+        name = products[0].name
+        count = len([product for product in products if product.name == name])
+        found = Product.find_by_name(name)
+        self.assertEqual(found.count(), count)
+        for product in found:
+            self.assertEqual(product.name, name)
+
+    def test_find_by_availability(self):
+        """It should Find Products by Availability"""
+        products = ProductFactory.create_batch(10)
+        for product in products:
+            product.create()
+        available = products[0].available
+        count = len([product for product in products if product.available == available])
+        found = Product.find_by_availability(available)
+        self.assertEqual(found.count(), count)
+        for product in found:
+            self.assertEqual(product.available, available)
+
+    def test_find_by_category(self):
+        """It should Find Products by Category"""
+        products = ProductFactory.create_batch(10)
+        for product in products:
+            product.create()
+        category = products[0].category
+        count = len([product for product in products if product.category == category])
+        found = Product.find_by_category(category)
+        self.assertEqual(found.count(), count)
+        for product in found:
+            self.assertEqual(product.category, category)
